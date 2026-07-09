@@ -29,6 +29,9 @@ class User(Base):
     # 邮箱:唯一、非空,加索引
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True, comment="邮箱")
 
+    # 密码哈希:存储经 bcrypt 加密后的密码,绝不能存明文
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="密码哈希")
+
     # 性别:使用 ENUM 约束取值范围,默认 other
     gender: Mapped[str] = mapped_column(
         Enum("male", "female", "other", name="gender_enum"),

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { message as staticMessage } from 'antd'
+import { clearAuth, getToken } from './auth'
 
 /**
  * 全局 axios 实例。
@@ -7,9 +8,10 @@ import { message as staticMessage } from 'antd'
  * 设计要点:
  * 1. baseURL='/api':与后端路由前缀对齐;开发时由 Vite 代理转发到 8000 端口,
  *    生产环境则由 Nginx 等反代处理,前端代码无需关心真实后端地址。
- * 2. 响应拦截器统一剥离后端的 { code, message, data } 外层结构,
- *    业务代码拿到的 Promise 直接 resolve 出 data 部分,调用更简洁。
- * 3. 错误统一弹 message 提示,业务层无需到处写 try/catch 提示逻辑。
+ * 2. 请求拦截器:自动从 localStorage 读取 JWT token 并注入 Authorization 头。
+ * 3. 响应拦截器:统一剥离后端的 { code, message, data } 外层结构;
+ *    收到 401 时自动清除 token 并跳转登录页。
+ * 4. 错误统一弹 message 提示,业务层无需到处写 try/catch 提示逻辑。
  */
 
 /**
@@ -32,9 +34,15 @@ const request = axios.create({
 })
 
 // ---------------- 请求拦截器 ----------------
-// 预留:后续若引入登录鉴权,可在此统一注入 Authorization 头
+// 自动注入 JWT token(登录鉴权)
 request.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = getToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
   (error) => Promise.reject(error),
 )
 
@@ -61,6 +69,16 @@ request.interceptors.response.use(
     let msg = error.message || '网络异常'
     if (error.response) {
       const status = error.response.status
+      // 401 未授权:token 无效/过期,清除登录状态并跳转登录页
+      if (status === 401) {
+        clearAuth()
+        // 避免在登录页本身触发跳转(循环)
+        if (!window.location.pathname.includes('/login')) {
+          messageApi.warning('登录已过期,请重新登录')
+          window.location.href = '/login'
+        }
+        return Promise.reject(error)
+      }
       // 优先取后端返回的具体错误信息(detail 是 FastAPI 的字段名)
       const detail = error.response.data?.detail || error.response.data?.message
       if (status === 404) msg = detail || '资源不存在'

@@ -23,6 +23,7 @@ CREATE TABLE `users` (
   `id`         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键,自增ID',
   `username`   VARCHAR(50)  NOT NULL COMMENT '登录名',
   `email`      VARCHAR(100) NOT NULL COMMENT '邮箱',
+  `password_hash` VARCHAR(255) DEFAULT NULL COMMENT '密码哈希(bcrypt)',
   `gender`     ENUM('male','female','other') NOT NULL DEFAULT 'other' COMMENT '性别',
   `nickname`   VARCHAR(50)  DEFAULT NULL COMMENT '昵称',
   `phone`      VARCHAR(20)  DEFAULT NULL COMMENT '手机号',

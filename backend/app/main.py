@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine
-from .routers import users
+from .routers import auth, users
 
 # 配置根日志:统一格式,便于排查问题
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -40,6 +40,8 @@ app.add_middleware(
 # ---- 路由注册 ----
 # 所有用户相关接口都挂在 /api 下,与前端 axios 的 baseURL 对齐
 app.include_router(users.router, prefix="/api")
+# 认证相关接口(注册等)挂在 /api/auth 下
+app.include_router(auth.router, prefix="/api")
 
 
 @app.on_event("startup")

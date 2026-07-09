@@ -6,6 +6,7 @@ import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import App from './App.jsx'
+import { AuthProvider } from './contexts/AuthContext'
 import { antdTheme } from './styles/theme'
 import './styles/global.css'
 
@@ -18,6 +19,7 @@ dayjs.locale('zh-cn')
  * 嵌套层级(由外到内):
  *   ConfigProvider   —— 注入中文语言包与主题令牌(antdTheme)
  *   AntdApp          —— antd v5 的全局上下文,提供 message/notification/modal 的运行时实例
+ *   AuthProvider     —— 全局鉴权状态(user / loading / login / logout),在路由之前以便守卫读取
  *   BrowserRouter    —— 启用 React Router 的 history 模式路由
  *   App              —— 路由配置
  */
@@ -25,9 +27,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ConfigProvider locale={zhCN} theme={antdTheme}>
       <AntdApp>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </AuthProvider>
       </AntdApp>
     </ConfigProvider>
   </React.StrictMode>,

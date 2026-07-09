@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # 允许的前端来源,多个用逗号分隔(开发环境通常是 Vite 的 5173 端口)
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # ---------- JWT 配置 ----------
+    # 密钥:用于签发/验证 JWT。生产环境务必通过 .env 设置一个随机长字符串。
+    JWT_SECRET: str = "change-me-in-production-please-use-a-long-random-string"
+    JWT_ALGORITHM: str = "HS256"
+    # Token 有效期(小时)
+    JWT_EXPIRE_HOURS: int = 24
+
     @property
     def database_url(self) -> str:
         """组装 SQLAlchemy 数据库连接串。

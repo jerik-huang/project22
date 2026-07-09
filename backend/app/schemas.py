@@ -9,7 +9,7 @@ schemas(models) 与 models(ORM) 分离是 FastAPI 的最佳实践:
 from datetime import datetime
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 # 泛型类型变量,供 ApiResponse[T] 使用
 T = TypeVar("T")
@@ -79,6 +79,51 @@ class UserCreate(UserBase):
     """创建用户请求体:字段与 UserBase 完全一致,单独定义便于未来扩展。"""
 
 
+class RegisterRequest(BaseModel):
+    """用户注册请求体。
+
+    与 UserCreate 的区别:注册时必须设置密码,因此额外携带 password / confirm_password。
+    其余公共字段复用 UserBase 的校验逻辑(通过组合而非继承,避免污染 UserCreate)。
+    """
+
+    username: str = Field(..., min_length=2, max_length=50, description="登录名")
+    email: EmailStr = Field(..., description="邮箱")
+    password: str = Field(..., min_length=6, max_length=64, description="密码,至少6位")
+    confirm_password: str = Field(..., min_length=6, max_length=64, description="确认密码")
+    gender: str = Field("other", description="性别: male/female/other")
+    nickname: str | None = Field(None, max_length=50, description="昵称")
+    phone: str | None = Field(None, max_length=20, description="手机号")
+
+    @field_validator("gender")
+    @classmethod
+    def check_gender(cls, v: str) -> str:
+        """校验性别取值,统一转为小写并限定在枚举范围内。"""
+        v = (v or "other").lower()
+        if v not in {"male", "female", "other"}:
+            raise ValueError("gender 必须是 male/female/other 之一")
+        return v
+
+    @field_validator("phone")
+    @classmethod
+    def check_phone(cls, v: str | None) -> str | None:
+        """手机号格式校验。"""
+        if v is None or v == "":
+            return None
+        cleaned = v.replace(" ", "").replace("-", "")
+        if not cleaned.startswith("+"):
+            cleaned = cleaned.lstrip("+")
+        if not cleaned.isdigit() or not (6 <= len(cleaned) <= 20):
+            raise ValueError("手机号格式不正确")
+        return v
+
+    @model_validator(mode="after")
+    def check_passwords_match(self) -> "RegisterRequest":
+        """两次输入的密码必须一致。"""
+        if self.password != self.confirm_password:
+            raise ValueError("两次输入的密码不一致")
+        return self
+
+
 class UserUpdate(BaseModel):
     """更新用户请求体。
 
@@ -134,6 +179,21 @@ class UserOut(BaseModel):
     phone: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class LoginRequest(BaseModel):
+    """用户登录请求体。"""
+
+    username: str = Field(..., min_length=1, max_length=50, description="用户名或邮箱")
+    password: str = Field(..., min_length=1, max_length=64, description="密码")
+
+
+class LoginResponse(BaseModel):
+    """登录成功响应体:返回 token 和用户信息。"""
+
+    access_token: str = Field(..., description="JWT token")
+    token_type: str = Field("bearer", description="token 类型")
+    user: UserOut = Field(..., description="当前用户信息")
 
 
 # ============================================================
